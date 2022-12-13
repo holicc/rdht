@@ -1,9 +1,9 @@
-use std::borrow::BorrowMut;
-use std::collections::HashMap;
-
 use rdht::errors::Error;
+use rdht::hashmap;
 use rdht::util::bencode;
 use rdht::util::bencode::Value;
+use std::borrow::BorrowMut;
+use std::collections::HashMap;
 
 #[test]
 fn test_decode_int() {
@@ -119,4 +119,40 @@ fn test_decode_dict() {
             "invalid dict format of end"
         )))
     );
+
+    let r = bencode::decode(
+        "d1:ad2:id20:abcdefghij0123456789e1:q4:ping1:t2:aa1:y1:qe"
+            .chars()
+            .peekable()
+            .borrow_mut(),
+    );
+    let mut w = HashMap::new();
+
+    w.insert(String::from("y"), Value::String("q".into()));
+    w.insert(String::from("q"), Value::String("ping".into()));
+    w.insert(
+        String::from("a"),
+        Value::Dict(hashmap!["id".to_string() => Value::String("abcdefghij0123456789".into())]),
+    );
+    w.insert("t".into(), Value::String("aa".into()));
+    assert_eq!(r, Ok(Value::Dict(w)));
+
+    let r = bencode::decode(
+        "d1:eli201e23:A Generic Error Ocurrede1:t2:aa1:y1:ee"
+            .chars()
+            .peekable()
+            .borrow_mut(),
+    );
+    let mut w = HashMap::new();
+
+    w.insert(String::from("y"), Value::String("e".into()));
+    w.insert(
+        String::from("e"),
+        Value::List(vec![
+            Value::Integer(201),
+            Value::String("A Generic Error Ocurred".into()),
+        ]),
+    );
+    w.insert("t".into(), Value::String("aa".into()));
+    assert_eq!(r, Ok(Value::Dict(w)));
 }

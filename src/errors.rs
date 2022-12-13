@@ -5,6 +5,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, PartialEq)]
 pub enum Error {
     BencodeParseError(String),
+    InvalidKRPC,
+    InvalidValue
 }
 
 impl From<ParseIntError> for Error {

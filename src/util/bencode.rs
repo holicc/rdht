@@ -10,13 +10,57 @@ pub enum Value {
     Dict(HashMap<String, Value>),
 }
 
+impl TryInto<String> for Value {
+    type Error = Error;
+
+    fn try_into(self) -> Result<String> {
+        if let Value::String(v) = self {
+            return Ok(v);
+        }
+        Err(Error::InvalidValue)
+    }
+}
+
+impl TryInto<u8> for Value {
+    type Error = Error;
+
+    fn try_into(self) -> Result<u8> {
+        if let Value::Integer(v) = self {
+            return Ok(v as u8);
+        }
+        Err(Error::InvalidValue)
+    }
+}
+
+impl TryInto<u64> for Value {
+    type Error = Error;
+
+    fn try_into(self) -> Result<u64> {
+        if let Value::Integer(v) = self {
+            return Ok(v);
+        }
+        Err(Error::InvalidValue)
+    }
+}
+
+impl TryInto<Vec<String>> for Value {
+    type Error = Error;
+
+    fn try_into(self) -> Result<Vec<String>> {
+        if let Value::List(v) = self {
+            return Ok(v.into_iter().filter_map(|x| x.try_into().ok()).collect());
+        }
+        Err(Error::InvalidValue)
+    }
+}
+
 pub fn decode<I: Iterator<Item = char>>(chars: &mut Peekable<I>) -> Result<Value> {
     match chars.peek() {
         Some('i') => parse_int(chars),
         Some(c) if c.is_digit(10) => parse_str(chars),
         Some('d') => parse_dict(chars),
         Some('l') => parse_list(chars),
-        _ => Err(Error::BencodeParseError(format!(
+        c => Err(Error::BencodeParseError(format!(
             "invalid bencode content: {}",
             chars.collect::<String>()
         ))),
@@ -66,7 +110,10 @@ fn parse_list<I: Iterator<Item = char>>(peek: &mut Peekable<I>) -> Result<Value>
     let mut list = Vec::new();
     loop {
         match peek.peek() {
-            Some(c) if *c == 'e' => break,
+            Some(c) if *c == 'e' => {
+                peek.next();
+                break;
+            }
             Some(_) => list.push(decode(peek)?),
             None => {
                 return Err(Error::BencodeParseError(format!(
@@ -85,9 +132,13 @@ fn parse_dict<I: Iterator<Item = char>>(peek: &mut Peekable<I>) -> Result<Value>
         )));
     }
     let mut map = HashMap::new();
+
     loop {
         match peek.peek() {
-            Some(c) if *c == 'e' => break,
+            Some(c) if *c == 'e' => {
+                peek.next();
+                break;
+            }
             Some(_) => {
                 if let Value::String(key) = decode(peek)? {
                     map.insert(key, decode(peek)?);
