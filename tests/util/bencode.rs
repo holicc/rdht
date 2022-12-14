@@ -3,7 +3,26 @@ use rdht::hashmap;
 use rdht::util::bencode;
 use rdht::util::bencode::Value;
 use std::borrow::BorrowMut;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+
+#[test]
+fn test_encode() {
+    let v = Value::String("value".into()).encode();
+    assert_eq!(v, Ok("5:value".into()));
+
+    let v = Value::Integer(1234).encode();
+    assert_eq!(v, Ok("i1234e".into()));
+
+    let v = Value::List(vec![Value::String("value".into()), Value::Integer(1234)]).encode();
+    assert_eq!(v, Ok("l5:valuei1234ee".into()));
+
+    let v = Value::Dict(hashmap![
+        "key1".to_string() => Value::String("value".into()),
+        "key2".to_string() => Value::Integer(1234),
+        "key3".to_string() => Value::List(vec![Value::String("value".into()), Value::Integer(1234)])
+    ]).encode();
+    assert_eq!(v, Ok("d4:key15:value4:key2i1234e4:key3l5:valuei1234eee".into()));
+}
 
 #[test]
 fn test_decode_int() {
@@ -100,7 +119,7 @@ fn test_decode_dict() {
             .peekable()
             .borrow_mut(),
     );
-    let mut w = HashMap::new();
+    let mut w = BTreeMap::new();
     w.insert(String::from("name"), Value::String(String::from("jisen")));
     w.insert(String::from("coin"), Value::String(String::from("btc")));
     w.insert(String::from("balance"), Value::Integer(1000));
@@ -126,7 +145,7 @@ fn test_decode_dict() {
             .peekable()
             .borrow_mut(),
     );
-    let mut w = HashMap::new();
+    let mut w = BTreeMap::new();
 
     w.insert(String::from("y"), Value::String("q".into()));
     w.insert(String::from("q"), Value::String("ping".into()));
@@ -143,7 +162,7 @@ fn test_decode_dict() {
             .peekable()
             .borrow_mut(),
     );
-    let mut w = HashMap::new();
+    let mut w = BTreeMap::new();
 
     w.insert(String::from("y"), Value::String("e".into()));
     w.insert(

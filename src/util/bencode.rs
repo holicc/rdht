@@ -1,4 +1,4 @@
-use std::{collections::HashMap, iter::Peekable};
+use std::{collections::BTreeMap, iter::Peekable};
 
 use crate::errors::{Error, Result};
 
@@ -7,7 +7,46 @@ pub enum Value {
     String(String),
     Integer(u64),
     List(Vec<Value>),
-    Dict(HashMap<String, Value>),
+    Dict(BTreeMap<String, Value>),
+}
+
+impl Value {
+    pub fn encode(self) -> Result<String> {
+        match self {
+            Value::String(s) => Self::encode_str(s),
+            Value::Integer(i) => Ok(format!("i{}e", i)),
+            Value::List(l) => Ok(format!(
+                "l{}e",
+                l.into_iter()
+                    .filter_map(|v| v.encode().ok())
+                    .collect::<Vec<String>>()
+                    .join("")
+            )),
+            Value::Dict(d) => {
+                let mut list = vec![];
+                for (k, v) in d {
+                    list.push(Self::encode_str(k)?);
+                    list.push(v.encode()?);
+                }
+                Ok(format!("d{}e", list.join("")))
+            }
+        }
+    }
+
+    fn encode_str(s: String) -> Result<String> {
+        if s.len() <= 0 {
+            return Err(Error::InvalidValue);
+        }
+        Ok(format!("{}:{}", s.len(), s))
+    }
+}
+
+impl TryFrom<&str> for Value {
+    type Error = Error;
+
+    fn try_from(value: &str) -> Result<Self> {
+        Ok(Value::String(value.into()))
+    }
 }
 
 impl TryInto<String> for Value {
@@ -131,7 +170,7 @@ fn parse_dict<I: Iterator<Item = char>>(peek: &mut Peekable<I>) -> Result<Value>
             "invalid dict format of start"
         )));
     }
-    let mut map = HashMap::new();
+    let mut map = BTreeMap::new();
 
     loop {
         match peek.peek() {
