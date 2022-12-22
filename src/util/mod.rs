@@ -1,4 +1,6 @@
 pub mod bencode;
+pub mod hex;
+
 #[macro_export]
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),*) => {{

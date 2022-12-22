@@ -1,3 +1,5 @@
+mod dht;
+
 use rdht::protocl::KRPC;
 use rdht::protocl::{DHTQuery, DHTResponse};
 
